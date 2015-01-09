@@ -7,6 +7,7 @@
 #include <zend_extensions.h>
 #include <ext/standard/file.h>
 #include <ext/standard/php_filestat.h>
+#include <ext/standard/php_smart_str.h>
 #include "php_wiredtiger.h"
 #include "db.h"
 
@@ -132,6 +133,7 @@ PHP_WT_ZEND_METHOD(Db, __construct)
     char *home = NULL, *config = NULL;
     int home_len = 0, config_len = 0;
     int ret;
+    zval exists;
     long mode = 0777;
 
     if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "|ss",
@@ -147,7 +149,10 @@ PHP_WT_ZEND_METHOD(Db, __construct)
     PHP_WT_DB_OBJ(intern, getThis(), 0);
 
     /* Create home directory */
-    php_mkdir_ex(home, mode, 0);
+    php_stat(home, home_len, FS_EXISTS, &exists);
+    if (!Z_BVAL(exists)) {
+        php_mkdir_ex(home, mode, 0);
+    }
 
     /* Default config */
     if (!config) {
@@ -177,6 +182,7 @@ PHP_WT_ZEND_METHOD(Db, create)
     char *uri, *config = NULL;
     int uri_len, config_len = 0;
     int ret;
+    smart_str conf = { 0 };
 
     if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s|s",
                               &uri, &uri_len,
@@ -188,17 +194,44 @@ PHP_WT_ZEND_METHOD(Db, create)
         RETURN_FALSE;
     }
 
+    /* Default key and value format: key_format=S,value_format=S */
+    if (!config || config_len == 0) {
+        smart_str_appendl(&conf, "key_format=S,value_format=S", 27);
+    } else {
+        char *t;
+        size_t t_len;
+
+        smart_str_appendl(&conf, config, config_len);
+
+        php_strtolower(config, config_len);
+
+        t = "key_format";
+        t_len = strlen(t);
+        if (!php_memnstr(config, t, t_len, config + config_len)) {
+            smart_str_appendc(&conf, ',');
+            smart_str_appendl(&conf, "key_format=S", 12);
+        }
+
+        t = "value_format";
+        t_len = strlen(t);
+        if (!php_memnstr(config, t, t_len, config + config_len)) {
+            smart_str_appendc(&conf, ',');
+            smart_str_appendl(&conf, "value_format=S", 14);
+        }
+    }
+    smart_str_0(&conf);
+
     PHP_WT_DB_OBJ(intern, getThis(), 1);
 
-    /* TODO: config: format.. */
-    config = "key_format=S,value_format=S";
-
-    ret = intern->session->create(intern->session, uri, config);
+    ret = intern->session->create(intern->session, uri, conf.c);
     if (ret != 0) {
+        smart_str_free(&conf);
         PHP_WT_EXCEPTION(0, "WiredTiger\\Db: Can not create table: %s",
                          wiredtiger_strerror(ret));
         RETURN_FALSE;
     }
+
+    smart_str_free(&conf);
 
     RETURN_TRUE;
 }

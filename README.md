@@ -49,9 +49,9 @@ WiredTiger\Db {
 ```
 WiredTiger\Cursor {
   public __construct(WiredTiger\Db $db, string $uri, string $config = NULL)
-  public string get(string $key)
-  public bool set(string $key, string $value)
-  public bool remove(string $key)
+  public string get(mixed $key)
+  public bool set(mixed $key, mixed $value [, ... ])
+  public bool remove(mixed $key)
   public bool close(void)
   public string current(void)
   public string key(void)
@@ -60,7 +60,7 @@ WiredTiger\Cursor {
   public bool valid(void)
   public bool prev(void)
   public bool last(void)
-  public bool seek(string $key, bool $near = FALSE)
+  public bool seek(mixed $key, bool $near = FALSE)
 }
 ```
 
@@ -89,4 +89,24 @@ $data = $cursor->get('key');
 foreach ($cursor as $key => $val) {
     echo "{$key} => {$val}\n";
 }
+```
+
+### Setting value and key
+
+* Value
+
+```
+$db->create($uri, 'value_format=SS');
+
+$cursor->set('key', 'value-1', 'value-2');
+  // or
+$cursor->set('key', ['value-1', 'value-2']);
+```
+
+* Key
+
+```
+$db->create($uri, 'key_format=iS');
+
+$cursor->set([1, 'key-1'], 'value-1');
 ```

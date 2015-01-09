@@ -17,7 +17,7 @@ php_wt_exception_class_register(TSRMLS_D)
 {
     zend_class_entry ce;
 
-    INIT_CLASS_ENTRY(ce, ZEND_NS_NAME(WT_NS, "Exception"), NULL);
+    INIT_CLASS_ENTRY(ce, ZEND_NS_NAME(PHP_WT_NS, "Exception"), NULL);
 
     php_wt_exception_ce = zend_register_internal_class_ex(
         &ce, zend_exception_get_default(TSRMLS_C), NULL TSRMLS_CC);

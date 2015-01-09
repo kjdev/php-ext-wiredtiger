@@ -6,8 +6,8 @@
 #include "exception.h"
 
 typedef struct {
-    char *key;
-    char *value;
+    WT_ITEM key;
+    WT_ITEM value;
 } php_wt_cursor_current_t;
 
 typedef struct {
