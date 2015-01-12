@@ -18,6 +18,7 @@ typedef struct {
     zend_bool started_iterating;
     zend_bool finished_prev;
     zend_bool finished_next;
+    zend_bool append;
 } php_wt_cursor_t;
 
 extern PHP_WT_API zend_class_entry *php_wt_cursor_ce;

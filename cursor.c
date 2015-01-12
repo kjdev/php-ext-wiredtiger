@@ -87,6 +87,11 @@ php_wt_cursor_create(zval *obj, zval *db,
     smart_str_appendl(&conf, "raw", 3);
     smart_str_0(&conf);
 
+    /* Check append */
+    if (!php_memnstr(config, "append", 6, config + config_len)) {
+        intern->append = 1;
+    }
+
     ret = session->open_cursor(session, uri, NULL, conf.c, &intern->cursor);
     if (ret != 0) {
         smart_str_free(&conf);
@@ -987,18 +992,23 @@ PHP_WT_ZEND_METHOD(Cursor, set)
     }
 
     /* Set key */
-    ret = php_wt_cursor_pack_key(intern, &pk, *args[0] TSRMLS_CC);
-    if (ret != 0) {
-        efree(args);
-        php_wt_cursor_pack_item_free(&pk TSRMLS_CC);
-        PHP_WT_EXCEPTION(0, "WiredTiger\\Cursor: Can not setting key");
-        RETURN_FALSE;
+    if (strcmp(intern->cursor->key_format, "r") == 0 &&
+        Z_TYPE_P(*args[0]) == IS_LONG && Z_LVAL_P(*args[0]) == 0) {
+        ; /* Not set key */
+    } else {
+        ret = php_wt_cursor_pack_key(intern, &pk, *args[0] TSRMLS_CC);
+        if (ret != 0) {
+            efree(args);
+            php_wt_cursor_pack_item_free(&pk TSRMLS_CC);
+            PHP_WT_EXCEPTION(0, "WiredTiger\\Cursor: Can not setting key");
+            RETURN_FALSE;
+        }
+
+        item.data = pk.data;
+        item.size = pk.size;
+
+        intern->cursor->set_key(intern->cursor, &item);
     }
-
-    item.data = pk.data;
-    item.size = pk.size;
-
-    intern->cursor->set_key(intern->cursor, &item);
 
     /* Set value */
     if (argc == 2 && Z_TYPE_P(*args[1]) == IS_ARRAY) {
