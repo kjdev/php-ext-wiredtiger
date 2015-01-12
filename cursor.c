@@ -767,11 +767,10 @@ php_wt_cursor_pack_value_array(php_wt_cursor_t *intern,
 }
 
 static int
-php_wt_cursor_unpack_value(php_wt_cursor_t *intern, zval *return_value,
-                           WT_ITEM *item TSRMLS_DC)
+php_wt_cursor_unpack_ex(php_wt_cursor_t *intern, zval *return_value,
+                        const char *format, WT_ITEM *item TSRMLS_DC)
 {
     int ret;
-    const char *format;
     size_t i, size, format_len, len = 0;
     zval *values;
     WT_PACK_STREAM *stream;
@@ -779,15 +778,13 @@ php_wt_cursor_unpack_value(php_wt_cursor_t *intern, zval *return_value,
     MAKE_STD_ZVAL(values);
     array_init(values);
 
-    ret = wiredtiger_unpack_start(intern->cursor->session,
-                                  intern->cursor->value_format,
+    ret = wiredtiger_unpack_start(intern->cursor->session, format,
                                   item->data, item->size, &stream);
     if (ret != 0) {
         PHP_WT_ERR(E_WARNING, "%s", wiredtiger_strerror(ret));
         return ret;
     }
 
-    format = intern->cursor->value_format;
     format_len = strlen(format);
     size = 0;
 
@@ -898,6 +895,23 @@ php_wt_cursor_unpack_value(php_wt_cursor_t *intern, zval *return_value,
 
     return 0;
 }
+
+static int
+php_wt_cursor_unpack_key(php_wt_cursor_t *intern, zval *return_value,
+                         WT_ITEM *item TSRMLS_DC)
+{
+    return php_wt_cursor_unpack_ex(intern, return_value,
+                                   intern->cursor->key_format, item TSRMLS_CC);
+}
+
+static int
+php_wt_cursor_unpack_value(php_wt_cursor_t *intern, zval *return_value,
+                           WT_ITEM *item TSRMLS_DC)
+{
+    return php_wt_cursor_unpack_ex(intern, return_value,
+                                   intern->cursor->value_format, item TSRMLS_CC);
+}
+
 
 PHP_WT_ZEND_METHOD(Cursor, get)
 {
@@ -1184,8 +1198,8 @@ PHP_WT_ZEND_METHOD(Cursor, key)
     } else if (intern->current.key.size == 0) {
         RETURN_EMPTY_STRING();
     } else {
-       ret = php_wt_cursor_unpack_value(intern, return_value,
-                                        &intern->current.key TSRMLS_CC);
+       ret = php_wt_cursor_unpack_key(intern, return_value,
+                                      &intern->current.key TSRMLS_CC);
        if (ret != 0) {
            PHP_WT_EXCEPTION(0, "WiredTiger\\Cursor: Can not getting key");
            RETURN_FALSE;
