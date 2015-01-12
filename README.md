@@ -110,3 +110,25 @@ $db->create($uri, 'key_format=iS');
 
 $cursor->set([1, 'key-1'], 'value-1');
 ```
+
+* Key autoincrement
+
+```
+$db->create($uri, 'key_format=r'); // Set config: key_format=r
+$cursor = $db->open($uri, 'append'); // Set config: append
+
+$cursor->set(0, 'value-1'); // Set key: 0
+$cursor->set(0, 'value-2');
+$cursor->set(0, 'value-3');
+
+foreach ($cursor as $key => $val) {
+    echo "{$key}: {$val}\n";
+}
+
+/*
+Output:
+  1: value-1
+  2: value-2
+  3: value-3
+*/
+```
