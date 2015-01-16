@@ -178,7 +178,7 @@ php_wt_cursor_pack_key_scalar(php_wt_cursor_t *intern,
                 if (Z_TYPE_P(key) != IS_LONG) {
                     convert_to_long(key);
                 }
-                item->asize++;
+                item->asize += 4;
                 break;
             case 's':
             case 'S':
@@ -303,7 +303,7 @@ php_wt_cursor_pack_key_array(php_wt_cursor_t *intern,
             case 'r':
             case 't':
                 zend_hash_move_forward_ex(ht, &pos);
-                item->asize++;
+                item->asize += 4;
                 break;
             case 's':
             case 'S':
@@ -484,7 +484,7 @@ php_wt_cursor_pack_value(php_wt_cursor_t *intern,
             case 'Q':
             case 'r':
             case 't':
-                item->asize++;
+                item->asize += 4;
                 j++;
                 break;
             case 's':
@@ -636,7 +636,7 @@ php_wt_cursor_pack_value_array(php_wt_cursor_t *intern,
             case 'r':
             case 't':
                 zend_hash_move_forward_ex(ht, &pos);
-                item->asize++;
+                item->asize += 4;
                 break;
             case 's':
             case 'S':
