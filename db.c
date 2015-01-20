@@ -49,6 +49,7 @@ static int
 php_wt_handle_error(WT_EVENT_HANDLER *handler, WT_SESSION *session,
                     int error, const char *message)
 {
+    TSRMLS_FETCH();
     (void)(handler);
     (void)(session);
 
@@ -64,6 +65,7 @@ static int
 php_wt_handle_message(WT_EVENT_HANDLER *handler, WT_SESSION *session,
                       const char *message)
 {
+    TSRMLS_FETCH();
     (void)(handler);
     (void)(session);
 
@@ -82,6 +84,7 @@ php_wt_handle_progress(WT_EVENT_HANDLER *handler, WT_SESSION *session,
     static int lastlen = 0;
     int len;
     char msg[128];
+    TSRMLS_FETCH();
 
     (void)(handler);
     (void)(session);
@@ -113,6 +116,7 @@ static int
 php_wt_handle_close(WT_EVENT_HANDLER *handler, WT_SESSION *session,
                     WT_CURSOR *cursor)
 {
+    TSRMLS_FETCH();
     (void)(handler);
     (void)(session);
     (void)(cursor);
@@ -149,9 +153,9 @@ PHP_WT_ZEND_METHOD(Db, __construct)
     PHP_WT_DB_OBJ(intern, getThis(), 0);
 
     /* Create home directory */
-    php_stat(home, home_len, FS_EXISTS, &exists);
+    php_stat(home, home_len, FS_EXISTS, &exists TSRMLS_CC);
     if (!Z_BVAL(exists)) {
-        php_mkdir_ex(home, mode, 0);
+        php_mkdir_ex(home, mode, 0 TSRMLS_CC);
     }
 
     /* Default config */

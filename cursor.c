@@ -35,7 +35,6 @@ ZEND_END_ARG_INFO()
 ZEND_BEGIN_ARG_INFO_EX(arginfo_wt_cursor_set, 0, ZEND_RETURN_VALUE, 2)
     ZEND_ARG_INFO(0, key)
     ZEND_ARG_INFO(0, value)
-    ZEND_ARG_VARIADIC_INFO(0, args)
 ZEND_END_ARG_INFO()
 
 
@@ -948,20 +947,23 @@ PHP_WT_ZEND_METHOD(Cursor, get)
 
     /* Get value */
     if (intern->cursor->search(intern->cursor) != 0) {
-        RETURN_FALSE;
+        RETVAL_FALSE;
     } else {
         ret = intern->cursor->get_value(intern->cursor, &item);
         if (ret != 0) {
             PHP_WT_ERR(E_WARNING, "%s", wiredtiger_strerror(ret));
-            RETURN_FALSE;
+            RETVAL_FALSE;
         }
 
         ret = php_wt_cursor_unpack_value(intern, return_value, &item TSRMLS_CC);
         if (ret != 0) {
+            php_wt_cursor_pack_item_free(&pk TSRMLS_CC);
             PHP_WT_EXCEPTION(0, "WiredTiger\\Cursor: Can not getting value");
             RETURN_FALSE;
         }
     }
+
+    php_wt_cursor_pack_item_free(&pk TSRMLS_CC);
 }
 
 PHP_WT_ZEND_METHOD(Cursor, set)
@@ -1072,16 +1074,18 @@ PHP_WT_ZEND_METHOD(Cursor, remove)
     ret = intern->cursor->search(intern->cursor);
     if (ret != 0) {
         PHP_WT_ERR(E_WARNING, "%s", wiredtiger_strerror(ret));
-        RETURN_FALSE;
+        RETVAL_FALSE;
+    } else {
+        ret = intern->cursor->remove(intern->cursor);
+        if (ret != 0) {
+            PHP_WT_ERR(E_WARNING, "%s", wiredtiger_strerror(ret));
+            RETVAL_FALSE;
+        } else {
+            RETVAL_TRUE;
+        }
     }
 
-    ret = intern->cursor->remove(intern->cursor);
-    if (ret != 0) {
-        PHP_WT_ERR(E_WARNING, "%s", wiredtiger_strerror(ret));
-        RETURN_FALSE;
-    }
-
-    RETURN_TRUE;
+    php_wt_cursor_pack_item_free(&pk TSRMLS_CC);
 }
 
 PHP_WT_ZEND_METHOD(Cursor, close)
@@ -1390,9 +1394,11 @@ PHP_WT_ZEND_METHOD(Cursor, seek)
             int exact;
             ret = intern->cursor->search_near(intern->cursor, &exact);
             if (ret != 0) {
+                php_wt_cursor_pack_item_free(&pk TSRMLS_CC);
                 RETURN_FALSE;
             }
         } else {
+            php_wt_cursor_pack_item_free(&pk TSRMLS_CC);
             RETURN_FALSE;
         }
     }
@@ -1401,6 +1407,8 @@ PHP_WT_ZEND_METHOD(Cursor, seek)
     intern->finished_prev = 0;
 
     php_wt_cursor_load_current(intern TSRMLS_CC);
+
+    php_wt_cursor_pack_item_free(&pk TSRMLS_CC);
 
     RETURN_TRUE;
 }
