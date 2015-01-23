@@ -972,7 +972,7 @@ PHP_WT_ZEND_METHOD(Cursor, set)
     zval ***args;
     long argc = ZEND_NUM_ARGS();
     php_wt_cursor_pack_item_t pk = { 0, }, pv = { 0, };
-    int ret;
+    int ret, autoindex = 0;
     WT_ITEM item;
 
     if (argc < 2) {
@@ -996,7 +996,7 @@ PHP_WT_ZEND_METHOD(Cursor, set)
     /* Set key */
     if (strcmp(intern->cursor->key_format, "r") == 0 &&
         Z_TYPE_P(*args[0]) == IS_LONG && Z_LVAL_P(*args[0]) == 0) {
-        ; /* Not set key */
+        autoindex = 1; /* Not set key */
     } else {
         ret = php_wt_cursor_pack_key(intern, &pk, *args[0] TSRMLS_CC);
         if (ret != 0) {
@@ -1031,7 +1031,13 @@ PHP_WT_ZEND_METHOD(Cursor, set)
 
     intern->cursor->set_value(intern->cursor, &item);
 
-    if (intern->cursor->insert(intern->cursor) != 0) {
+    if (autoindex) {
+        ret = intern->cursor->insert(intern->cursor);
+    } else {
+        ret = intern->cursor->update(intern->cursor);
+    }
+
+    if (ret != 0) {
         PHP_WT_ERR(E_WARNING, "%s", wiredtiger_strerror(ret));
         RETVAL_FALSE;
     } else {
